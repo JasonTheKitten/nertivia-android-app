@@ -30,7 +30,6 @@ import javax.security.auth.callback.Callback
 
 
 class LoginActivity : AppCompatActivity() {
-    public lateinit var captchaDialog: Dialog;
     private val userService = ServiceBuilder.buildService(UserService::class.java)
     private var sharedPreference: SharedPreference? = null
     var gson = Gson()
@@ -41,62 +40,18 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
         sharedPreference= SharedPreference(this)
         // Login button event
-        loginBtn.setOnClickListener { getReCaptchaToken() }
+        loginBtn.setOnClickListener { login() }
 
     }
 
-    private fun getReCaptchaToken () {
-        class WebAppInterface(private val mContext: Context) {
-
-            /** Show a toast from the web page  */
-            @JavascriptInterface
-            fun hCaptchaCallbackInAndroid(token: String) {
-                Toast.makeText(applicationContext, "Logging in...", Toast.LENGTH_SHORT).show()
-                captchaDialog.dismiss()
-                login(token);
-
-            }
-        }
-
-        captchaDialog = Dialog(this);
-
-        captchaDialog.setContentView(R.layout.captcha_dialog);
-        val webView = captchaDialog.findViewById<WebView>(R.id.captcha_web_view)
-
-        webView.settings.javaScriptEnabled = true;
-        webView.settings.builtInZoomControls = false;
-        webView.webViewClient =  WebViewClient()
-        val lp = WindowManager.LayoutParams()
-        lp.copyFrom(captchaDialog.window?.attributes)
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT
-        lp.height = WindowManager.LayoutParams.MATCH_PARENT
-        captchaDialog.show()
-        captchaDialog.window?.attributes = lp;
-        webView.loadUrl("https://nertivia.net/android_captcha.html")
-        webView.addJavascriptInterface(WebAppInterface(this), "BridgeWebViewClass")
-
-
-        //SafetyNet.getClient(applicationContext).verifyWithRecaptcha(getString(R.string.recaptcha_token))
-        //    .addOnSuccessListener { response ->
-        //        val reCaptchaToken = response.tokenResult
-        //        login(reCaptchaToken)
-
-        //    }
-        //    .addOnFailureListener {e ->
-        //        Toast.makeText(applicationContext,  e.message, Toast.LENGTH_SHORT).show()
-        //    }
-    }
-
-    private fun login (reCaptchaToken: String) {
-
+    private fun login () {
         val email = emailEditText.text.toString().trim()
         val password = passwordEditText.text.toString().trim()
-        val loginData = LoginData(email, password, reCaptchaToken)
-
+        val loginData = LoginData(email, password)
 
         val requestCall = userService.login(loginData)
 
-            requestCall.enqueue(object: Callback, retrofit2.Callback<LoginResponse> {
+        requestCall.enqueue(object: Callback, retrofit2.Callback<LoginResponse> {
             override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                 Toast.makeText(applicationContext,  t.message, Toast.LENGTH_SHORT).show()
             }
@@ -145,7 +100,7 @@ class LoginActivity : AppCompatActivity() {
                         Toast.makeText(    applicationContext,  "success",     Toast.LENGTH_SHORT   ).show()
                     } else {
                         //val jObjError = JSONObject(response.errorBody()?.string())
-                        Toast.makeText(    applicationContext,  "faill ;c",     Toast.LENGTH_SHORT   ).show()
+                        Toast.makeText(    applicationContext,  "fail ;c",     Toast.LENGTH_SHORT   ).show()
                     }
                 }
 

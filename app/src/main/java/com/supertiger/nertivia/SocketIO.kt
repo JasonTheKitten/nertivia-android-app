@@ -2,15 +2,19 @@ package com.supertiger.nertivia
 
 
 import android.util.Log
+import android.widget.Toast
 import com.google.gson.Gson
 import com.supertiger.nertivia.cache.*
 import com.supertiger.nertivia.models.*
 import io.socket.client.IO
 import io.socket.client.Socket
+import io.socket.client.SocketIOException
 import io.socket.emitter.Emitter
+import io.socket.engineio.client.transports.WebSocket
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URISyntaxException
+import kotlinx.android.synthetic.main.activity_main.*
 
 
 class SocketIO {
@@ -27,19 +31,25 @@ class SocketIO {
     var onMessageNotification: ((uniqueID: String?) -> Unit)? = null
     var onPresenceChange: (() -> Unit)? = null;
     var onTyping: (() -> Unit)? = null;
+    var onErrorMessage: ((err: Exception) -> Unit)? = null;
 
     fun connect(address: String) {
-        mSocket = IO.socket(address)
+        val options = IO.Options.builder()
+            .setTransports(arrayOf(WebSocket.NAME))
+            .build()
+
+        mSocket = IO.socket(address, options)
         mSocket?.connect()
     }
     fun startEvents() {
-        mSocket?.on("connect") {
+        mSocket?.on(Socket.EVENT_CONNECT) {
             val obj = JSONObject()
             obj.put("token", token)
             mSocket?.emit("authentication", obj)
+
             onConnect?.invoke()
         }
-        mSocket?.on("success") { args ->
+        mSocket?.on("authenticated") { args ->
             authenticated = true;
             val obj = args[0] as JSONObject
             val user = obj.getJSONObject("user");
@@ -104,9 +114,6 @@ class SocketIO {
             } else {
                 servers = srvs
             }
-
-
-
 
             onAuthenticate?.invoke()
         }
@@ -202,7 +209,11 @@ class SocketIO {
         mSocket?.on("disconnect") {
             authenticated = false;
             onDisconnect?.invoke()
-       }
+        }
+        mSocket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            val error = args[0] as Exception
+            onErrorMessage?.invoke(error)
+        }
     }
     fun connected (): Boolean {
         return mSocket != null && mSocket?.connected() == true

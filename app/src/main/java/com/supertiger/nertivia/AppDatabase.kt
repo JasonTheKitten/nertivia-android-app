@@ -11,7 +11,7 @@ import com.supertiger.nertivia.models.LocalNotification
 import com.supertiger.nertivia.models.PushNotificationDao
 
 
-@Database(entities = arrayOf(LocalNotification::class), version = 1)
+@Database(entities = arrayOf(LocalNotification::class), version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase: RoomDatabase() {
     abstract fun pushNotificationDao(): PushNotificationDao

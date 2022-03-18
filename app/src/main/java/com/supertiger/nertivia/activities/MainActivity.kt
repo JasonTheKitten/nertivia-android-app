@@ -50,6 +50,7 @@ import kotlin.collections.set
 
 
 class MainActivity : AppCompatActivity()  {
+
     private val channelService = ServiceBuilder.buildService(ChannelService::class.java)
     private val messageService = ServiceBuilder.buildService(MessageService::class.java)
     private var sharedPreference: SharedPreference? = null
@@ -57,10 +58,10 @@ class MainActivity : AppCompatActivity()  {
     var gson = Gson()
     val sendTypingHandler = Handler();
     var isSendTypingHandlerRunning = false;
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
 
         sharedPreference = SharedPreference(this)
         val userString = sharedPreference?.getValueString("user")
@@ -229,7 +230,10 @@ class MainActivity : AppCompatActivity()  {
             val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
             try {
                 if (cursor != null && cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                    val columnIndex: Int = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (columnIndex >= 0) {
+                        result = cursor.getString(columnIndex)
+                    }
                 }
             } finally {
                 cursor!!.close()
@@ -382,7 +386,7 @@ class MainActivity : AppCompatActivity()  {
 
     private fun socketConnect() {
         socketIOInstance = SocketIO()
-        socketIOInstance?.connect(getString(R.string.domain))
+
         socketIOInstance?.onConnect = {
             if (!inFocus) {
                 socketIOInstance?.disconnect();
@@ -393,9 +397,14 @@ class MainActivity : AppCompatActivity()  {
                 socketIOInstance?.disconnect();
             }
         }
+        socketIOInstance?.onErrorMessage = {
+            runOnUiThread {
+                Toast.makeText(applicationContext, it.message, Toast.LENGTH_SHORT).show()
+            }
+        }
         socketIOInstance?.onAuthenticate = {
             socketIOInstance?.dismissNotification(selectedChannelID)
-            runOnUiThread{
+            runOnUiThread {
                 Toast.makeText(applicationContext, "Authenticated", Toast.LENGTH_SHORT).show()
                 setFriendAdapter()
                 setRecentAdapter()
@@ -456,8 +465,10 @@ class MainActivity : AppCompatActivity()  {
                 checkPrivateNotification()
             }
         }
-        socketIOInstance?.startEvents()
 
+        socketIOInstance?.connect(getString(R.string.domain))
+
+        socketIOInstance?.startEvents()
     }
     private fun toolBarPresenceChange() {
 
